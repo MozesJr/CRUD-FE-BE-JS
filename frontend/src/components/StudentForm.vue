@@ -1,100 +1,84 @@
 <template>
-    <div>
-      <!-- Modal -->
-      <div class="modal fade" id="studentModal" tabindex="-1" aria-labelledby="studentModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="studentModalLabel">{{ isEdit ? 'Edit' : 'Add' }} Student</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-              <form @submit.prevent="handleSubmit">
-                <div class="mb-3">
-                  <label>Name:</label>
-                  <input v-model="student.name" required class="form-control" />
-                </div>
-                <div class="mb-3">
-                  <label>Student ID:</label>
-                  <input v-model="student.studentId" required class="form-control" />
-                </div>
-                <div class="mb-3">
-                  <label>Major:</label>
-                  <input v-model="student.major" required class="form-control" />
-                </div>
-                <div class="mb-3">
-                  <label>Gender:</label>
-                  <input v-model="student.gender" required class="form-control" />
-                </div>
-                <button type="submit" class="btn btn-primary">{{ isEdit ? 'Update' : 'Add' }} Student</button>
-              </form>
-            </div>
-          </div>
-        </div>
+  <div>
+    <h1>{{ isEdit ? 'Edit' : 'Add' }} Student</h1>
+    <form @submit.prevent="handleSubmit">
+      <div class="mb-3">
+        <label for="name" class="form-label">Name:</label>
+        <input type="text" id="name" v-model="student.name" class="form-control" required />
       </div>
-    </div>
-  </template>
-  
-  <script>
-  import axios from 'axios';
-  import Swal from 'sweetalert2';
-  
-  export default {
-    props: ['studentData'],
-    data() {
-      return {
-        student: {
-          name: '',
-          studentId: '',
-          major: '',
-          gender: '',
-        },
-        isEdit: false,
-      };
+      <div class="mb-3">
+        <label for="studentId" class="form-label">Student ID:</label>
+        <input type="text" id="studentId" v-model="student.studentId" class="form-control" required />
+      </div>
+      <div class="mb-3">
+        <label for="major" class="form-label">Major:</label>
+        <select id="major" v-model="student.major" class="form-control" required>
+          <option v-for="major in majors" :key="major._id" :value="major._id">{{ major.name }}</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="gender" class="form-label">Gender:</label>
+        <select id="gender" v-model="student.gender" class="form-control" required>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">{{ isEdit ? 'Update' : 'Add' }} Student</button>
+    </form>
+  </div>
+</template>
+
+<script>
+import axios from 'axios';
+
+export default {
+  props: {
+    studentData: {
+      type: Object,
+      default: () => ({}),
     },
-    watch: {
-      studentData: {
-        immediate: true,
-        handler(val) {
-          if (val) {
-            this.student = { ...val };
-            this.isEdit = true;
-          } else {
-            this.isEdit = false;
-          }
-          this.showModal();
-        },
+  },
+  data() {
+    return {
+      student: {
+        name: '',
+        studentId: '',
+        major: '',
+        gender: 'Male',
       },
+      majors: [],
+      isEdit: false,
+    };
+  },
+  created() {
+    if (this.studentData && this.studentData._id) {
+      this.student = { ...this.studentData };
+      this.isEdit = true;
+    }
+    this.fetchMajors();
+  },
+  methods: {
+    async fetchMajors() {
+      try {
+        const response = await axios.get('http://localhost:5000/api/majors');
+        this.majors = response.data;
+      } catch (error) {
+        console.error('Error fetching majors:', error);
+      }
     },
-    methods: {
-      showModal() {
-        const modalElement = document.getElementById('studentModal');
-        const modal = new bootstrap.Modal(modalElement);
-        modal.show();
-      },
-      async handleSubmit() {
+    async handleSubmit() {
+      try {
         if (this.isEdit) {
           await axios.put(`http://localhost:5000/api/students/${this.student._id}`, this.student);
-          Swal.fire('Updated!', 'Student has been updated.', 'success');
         } else {
           await axios.post('http://localhost:5000/api/students', this.student);
-          Swal.fire('Added!', 'Student has been added.', 'success');
         }
         this.$emit('student-saved');
-        this.resetForm();
-      },
-      resetForm() {
-        this.student = {
-          name: '',
-          studentId: '',
-          major: '',
-          gender: '',
-        };
-        const modalElement = document.getElementById('studentModal');
-        const modal = bootstrap.Modal.getInstance(modalElement);
-        modal.hide();
-      },
+        this.$router.push('/');
+      } catch (error) {
+        console.error('Error saving student:', error);
+      }
     },
-  };
-  </script>
-  
+  },
+};
+</script>
